@@ -9,6 +9,7 @@ import os
 import argparse
 import secrets
 import hashlib
+import base64
 
 class EncodingError(Exception):
     pass
@@ -50,35 +51,59 @@ class Encryptor:
         unpadder = padding.PKCS7(128).unpadder()
         return unpadder.update(decrypted_data) + unpadder.finalize()
     
+    def code_text(self, text: str):
+        data = text.encode("utf-8")
+        return base64.urlsafe_b64encode(data).decode("utf-8")
+    
+    def decode_text(self, coded_text: str):
+        data = base64.urlsafe_b64decode(coded_text.encode("utf-8"))
+        return data.decode("utf-8")
+    
 class Logger:
     def __init__(self, verbose=False, file: Path = None):
+        if file != None:
+            if not os.path.exists(file): file.touch()
+            self.file = open(file, "a")
+            
         self.verbose = verbose
-        self.file = file
-        if file != None and not os.path.exists(file):
-            self.file = file.touch()
         
     def set_verbose(self, verbose):
         self.verbose = verbose
         
     def log(self, message, file=stdout):
         if self.file != None:
-            file = open(self.file, "a")
+            file = self.file
         
         if self.verbose:
             print(f'{datetime.now()} - LOG: {message}', file=file)
             
     def warn(self, message, file=stderr):
         if self.file != None:
-            file = open(self.file, "a")
+            file = self.file
             
         print(f'{datetime.now()} - ALERT: {message}', file=file)
         
     def error(self, message, file=stderr):
         if self.file != None:
-            file = open(self.file, "a")
+            file = self.file
             
         print(f'{datetime.now()} - PANIC: {message}', file=file)
-        exit(1)
+        raise Exception(message)
+        
+def rename_file(path: Path, encrypt: bool, decrypt: bool, logger: Logger, cipher: Encryptor):
+    if encrypt and not str(path).endswith(".locked"):
+        new_path = path.with_name(cipher.code_text(path.name) + ".locked")
+        logger.log(f'Renaming {path} to {new_path}')
+        path.rename(new_path)
+
+    elif decrypt and str(path).endswith(".locked"):
+        new_name = path.name[:-7]
+        new_path = path.with_name(cipher.decode_text(new_name))
+        logger.log(f'Renaming {path} to {new_path}')
+        path.rename(new_path)
+        
+    else:
+        raise EncodingError("Files has no correct configuration.")
         
 def manage_file(path: Path, encrypt: bool, decrypt: bool, logger: Logger, cipher: Encryptor):
     if not encrypt and not decrypt:
@@ -94,11 +119,9 @@ def manage_file(path: Path, encrypt: bool, decrypt: bool, logger: Logger, cipher
             elif decrypt:
                 logger.log(f'Decrypting {path}.')
                 a.write(cipher.decrypt(f.read()))
-                    
-            f.close()
-            a.close()
         
         os.replace(temp, path)
+        rename_file(path, encrypt, decrypt, logger, cipher)
         
     except Exception as e:
         if os.path.exists(temp): os.remove(temp)
@@ -121,6 +144,7 @@ def locker(path: Path, encrypt: bool, decrypt: bool, isRecursive: bool, isIntera
             if confirmed:
                 logger.log(f'Confirmed processing {child}.')
                 locker(child, encrypt, decrypt, isRecursive, isInteractive, logger, cipher)
+                rename_file(child, encrypt, decrypt, logger, cipher)
             else:
                 logger.warn(f'Skipping file {child} because of no -r or -i passed.')
                 continue    
