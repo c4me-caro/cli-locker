@@ -61,6 +61,7 @@ class Encryptor:
     
 class Logger:
     def __init__(self, verbose=False, file: Path = None):
+        self.file = None
         if file != None:
             if not os.path.exists(file): file.touch()
             self.file = open(file, "a")
