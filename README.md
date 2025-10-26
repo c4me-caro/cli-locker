@@ -31,25 +31,23 @@ To run tests, run the following command
 ## Usage
 
 ```bash
-usage: locker [-h] [-r | -i] [-c | -d] [-v] [-o FILE] path key
+usage: locker [-h] [-r | -i] [-c | -d] [-v] [-o FILE] (-k KEY | -p) path
 
 CLI tool to lock folders.
 
 positional arguments:
   path                  The source directory of the lock.
-  key                   The password to encrypt/decrypt data.
 
 options:
-  -h, --help            show this help message and exit
-  -r, --recursive       Lock directories and all subdirectories.
-  -i, --interactive     Ask about the actions being performed.
-  -c, --encrypt, --lock
-                        Select encription mode to locker
-  -d, --decrypt, --unlock
-                        Select decription mode to locker
-  -v, --verbose         Show more detail about actions being performed.
-  -o FILE, --output FILE
-                        Store the log in a external file.
+  -h, --help              show this help message and exit
+  -r, --recursive         Lock directories and all subdirectories.
+  -i, --interactive       Ask about the actions being performed.
+  -c, --encrypt, --lock   Select encription mode to locker
+  -d, --decrypt, --unlock Select decription mode to locker
+  -v, --verbose           Show more detail about actions being performed.
+  -o FILE, --output FILE  Store the log in a external file.
+  -k KEY, --key KEY       The password to encrypt/decrypt data.
+  -p, --password          Prompt for password input securely.
 ```
 
 ## Examples
@@ -57,19 +55,19 @@ options:
 Lock (encrypt) a folder recursively
 
 ```bash
-python locker.py -r -c /path/to/the/folder secret_key
+python locker.py -r -c /path/to/the/folder -p
 ```
 
 Unlock (decrypt) a folder interactively
 
 ```bash
-python locker.py -i -d /path/to/the/folder secret_key
+python locker.py -i -d /path/to/the/folder -p
 ```
 
 Save details in a log file
 
 ```bash
-python locker.py -r -c -v -o log.txt /path/to/the/folder secret_key
+python locker.py -r -c -v -o log.txt /path/to/the/folder -p
 ```
 ## Deployment
 

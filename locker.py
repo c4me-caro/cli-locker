@@ -10,6 +10,7 @@ import argparse
 import secrets
 import hashlib
 import base64
+import getpass
 
 class EncodingError(Exception):
     pass
@@ -152,6 +153,18 @@ def locker(path: Path, encrypt: bool, decrypt: bool, isRecursive: bool, isIntera
             
         else:
             raise CFileError("File type not supported.")
+
+def get_password(prompt: str = "Enter password: ") -> str:
+    while True:
+        try:
+            password = getpass.getpass(prompt)
+            confirm_password = getpass.getpass("Confirm password: ")
+            if password == confirm_password:
+                return password
+            else:
+                print("Passwords do not match. Please try again.")
+        except Exception as e:
+            print(f"Error getting password. Please try again.")
         
 def cli() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -198,23 +211,33 @@ def cli() -> argparse.Namespace:
     )
     
     parser.add_argument(
-        "key",
-        type=str,
-        help="The password to encrypt/decrypt data."
-    )
-    
-    parser.add_argument(
         "-o", "--output",
         required=False,
         type=Path,
         metavar="FILE",
         help="Store the log in a external file."
     )
+
+    group3 = parser.add_mutually_exclusive_group(required=True)
+    group3.add_argument(
+        "-k", "--key",
+        type=str,
+        help="The password to encrypt/decrypt data."
+    )
+
+    group3.add_argument(
+        "-p", "--password",
+        action="store_true",
+        help="Prompt for password input securely."
+    )
     
     return parser.parse_args()
         
 def main():
     args = cli()
+
+    if args.password:
+        args.key = get_password()
     
     if args.output:
         logger = Logger(args.verbose, file=args.output)
